@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  cline-mcp-server:
+    build: .
+    container_name: cline-mcp-java-spring
+    image: cline-mcp:latest
+    
+    # Environment variables
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+    
+    # Mount volumes for access to your project
+    volumes:
+      - ./mcp_server:/app/mcp_server
+      - /Users/robertoarnaugil/Documents/docker_roberto/back_agent:/workspace:rw  # Mount your workspace
+      - cline-logs:/app/logs
+    
+    # Port mapping (if needed for future web interface)
+    ports:
+      - "8080:8080"
+    
+    # Keep the container running
+    tty: true
+    stdin_open: true
+    
+    # Working directory
+    working_dir: /app
+    
+    # Command to run the MCP server
+    command: python -m mcp_server.main
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: Add a Redis service for caching (if needed in the future)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: cline-mcp-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   restart: unless-stopped
+
+volumes:
+  cline-logs:
+    driver: local
+  # redis-data:
+  #   driver: local
+
+networks:
+  default:
+    name: cline-mcp-network

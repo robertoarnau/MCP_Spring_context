@@ -1,0 +1,44 @@
+{
+  "mcp_server": {
+    "name": "CLine Java/Spring Boot MCP",
+    "version": "1.0.0",
+    "description": "Context provider for Java and Spring Boot development",
+    "capabilities": {
+      "tools": [
+        "analyze",
+        "get_function_signatures", 
+        "list_files",
+        "read_file",
+        "create_file",
+        "search_files",
+        "generate_docs",
+        "extract_comments",
+        "get_structure",
+        "detect_technologies"
+      ]
+    },
+    "settings": {
+      "log_level": "INFO",
+      "max_file_size": "10MB",
+      "supported_extensions": [".java", ".xml", ".yml", ".yaml", ".properties", ".gradle"],
+      "spring_annotations": [
+        "@SpringBootApplication", "@RestController", "@Controller", "@Service", 
+        "@Repository", "@Component", "@Autowired", "@Configuration", "@RequestMapping",
+        "@GetMapping", "@PostMapping", "@PutMapping", "@DeleteMapping", "@PatchMapping"
+      ]
+    }
+  },
+  "docker": {
+    "image": "cline-mcp:latest",
+    "container_name": "cline-mcp-java-spring",
+    "port": 8080,
+    "workspace_mount": "/workspace",
+    "log_level": "INFO"
+  },
+  "analysis": {
+    "default_depth": 3,
+    "include_file_sizes": false,
+    "quality_metrics": true,
+    "spring_focused": true
+  }
+}

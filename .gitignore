@@ -268,3 +268,7 @@ out/
 .mcp_cache/
 server_logs/
 mcp_logs/
+
+# Agent
+.agent/
+agent/

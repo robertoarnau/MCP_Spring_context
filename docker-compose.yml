@@ -15,6 +15,7 @@ services:
     # Mount volumes for access to your project
     volumes:
       - ./mcp_server:/app/mcp_server
+      - ./tests:/app/tests
       - /Users/robertoarnaugil/Documents/docker_roberto/back_agent:/workspace:rw  # Mount your workspace
       - cline-logs:/app/logs
     

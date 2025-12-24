@@ -17,8 +17,15 @@ class TestFileManager:
 
     @pytest.fixture
     def file_manager(self):
-        """Create a FileManager instance for testing."""
-        return FileManager()
+        """Create a FileManager instance for testing with injected dependencies."""
+        from mcp_server.infrastructure.filesystem import AIOFileSystem
+        from mcp_server.services.java_service import JavaService
+        from mcp_server.services.file_service import FileService
+        
+        fs = AIOFileSystem()
+        java_service = JavaService(fs)
+        file_service = FileService(fs, java_service)
+        return FileManager(file_service, java_service)
 
     @pytest.mark.asyncio
     async def test_list_files_directory(self, file_manager, sample_spring_project):
@@ -287,27 +294,30 @@ class TestFileManager:
         assert file_manager._format_size(1500000) == "1.5 MB"
         assert file_manager._format_size(1500000000) == "1.5 GB"
 
-    def test_analyze_spring_structure(self, file_manager, sample_spring_project):
+    @pytest.mark.asyncio
+    async def test_analyze_spring_structure(self, file_manager, sample_spring_project):
         """Test Spring Boot structure analysis."""
-        structure = file_manager._analyze_spring_structure(sample_spring_project)
+        structure = await file_manager._analyze_spring_structure(sample_spring_project)
         
         assert structure["has_maven"] is True
         assert structure["has_main_sources"] is True
         assert structure["has_resources"] is True
         assert structure["main_class"] is not None
 
-    def test_analyze_spring_structure_gradle(self, file_manager, temp_dir):
+    @pytest.mark.asyncio
+    async def test_analyze_spring_structure_gradle(self, file_manager, temp_dir):
         """Test Spring Boot structure analysis with Gradle."""
         # Create build.gradle
         (temp_dir / "build.gradle").write_text("plugins { id 'org.springframework.boot' }")
         (temp_dir / "src" / "main" / "java").mkdir(parents=True)
         
-        structure = file_manager._analyze_spring_structure(temp_dir)
+        structure = await file_manager._analyze_spring_structure(temp_dir)
         
         assert structure["has_gradle"] is True
         assert structure["is_spring_boot_project"] is True
 
-    def test_analyze_java_file_structure(self, file_manager, temp_dir):
+    @pytest.mark.asyncio
+    async def test_analyze_java_file_structure(self, file_manager, temp_dir):
         """Test Java file structure analysis."""
         java_content = '''
         package com.example.demo;
@@ -323,7 +333,7 @@ class TestFileManager:
         }
         '''
         
-        result = file_manager._analyze_java_file_structure(java_content)
+        result = await file_manager._analyze_java_file_structure(java_content)
         
         assert result["has_package"] is True
         assert result["has_imports"] is True
@@ -331,7 +341,8 @@ class TestFileManager:
         assert result["method_count"] >= 1
         assert "@SpringBootApplication" in result["spring_annotations"]
 
-    def test_analyze_config_file_properties(self, file_manager):
+    @pytest.mark.asyncio
+    async def test_analyze_config_file_properties(self, file_manager):
         """Test properties file analysis."""
         content = '''
         server.port=8080
@@ -340,13 +351,14 @@ class TestFileManager:
         logging.level.root=INFO
         '''
         
-        result = file_manager._analyze_config_file(content, ".properties")
+        result = await file_manager._analyze_config_file(content, ".properties")
         
         assert result["file_type"] == ".properties"
         assert result["key_count"] == 3  # Excluding comments
         assert len(result["spring_properties"]) == 2  # server and spring properties
 
-    def test_analyze_config_file_yaml(self, file_manager):
+    @pytest.mark.asyncio
+    async def test_analyze_config_file_yaml(self, file_manager):
         """Test YAML file analysis."""
         content = '''
         server:
@@ -360,13 +372,14 @@ class TestFileManager:
             root: INFO
         '''
         
-        result = file_manager._analyze_config_file(content, ".yml")
+        result = await file_manager._analyze_config_file(content, ".yml")
         
         assert result["file_type"] == ".yml"
         assert result["key_count"] >= 4  # Non-comment lines with colons
         assert len(result["spring_properties"]) >= 2  # server and spring properties
 
-    def test_validate_java_syntax_valid(self, file_manager):
+    @pytest.mark.asyncio
+    async def test_validate_java_syntax_valid(self, file_manager):
         """Test Java syntax validation for valid code."""
         content = '''
         public class TestClass {
@@ -376,12 +389,13 @@ class TestFileManager:
         }
         '''
         
-        result = file_manager._validate_java_syntax(content)
+        result = await file_manager._validate_java_syntax(content)
         
         assert result["valid"] is True
         assert len(result["errors"]) == 0
 
-    def test_validate_java_syntax_invalid(self, file_manager):
+    @pytest.mark.asyncio
+    async def test_validate_java_syntax_invalid(self, file_manager):
         """Test Java syntax validation for invalid code."""
         content = '''
         public class TestClass {
@@ -390,7 +404,7 @@ class TestFileManager:
             }
         '''
         
-        result = file_manager._validate_java_syntax(content)
+        result = await file_manager._validate_java_syntax(content)
         
         assert result["valid"] is False
         # The exact validation depends on the implementation, but there should be some indication of issues
